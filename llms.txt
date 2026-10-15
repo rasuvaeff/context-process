@@ -1,0 +1,39 @@
+# context-process
+
+Install:
+
+```
+composer require rasuvaeff/context-process
+```
+
+Requires `rasuvaeff/context` ^0.3, `symfony/process` ^7 || ^8.
+
+## Rules
+
+- Pass the command as an argv array, never a shell string: only the process
+  itself receives SIGTERM.
+- Deadline or cancellation → the process is stopped (SIGTERM, SIGKILL after
+  `gracePeriod`), then the context exception is rethrown. The grace period is
+  NOT bounded by the budget.
+- The budget is not converted into the process timeout (symfony kills on
+  timeout with no grace); the process's own setTimeout()/setIdleTimeout() still
+  work and their ProcessTimedOutException is rethrown unchanged.
+- A terminated context never starts the process; an already started process →
+  LogicException; a throwing callback still stops the process.
+- Termination is noticed within one `pollInterval` (default 0.05 s); a
+  `requestCancel()` from a signal handler wakes the wait at once.
+
+## API
+
+```php
+use Rasuvaeff\Context\Process\ContextProcess;
+use Symfony\Component\Process\Process;
+
+$exitCode = ContextProcess::run(
+    new Process(['convert', $in, $out]),
+    $context,
+    callback: static fn(string $type, string $chunk): null => null,   // Process::OUT / Process::ERR
+    gracePeriod: 2.0,
+    pollInterval: 0.05,
+);   // int exit code | ContextExpiredException | ContextCancelledException | ProcessTimedOutException
+```
