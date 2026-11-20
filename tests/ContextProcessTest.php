@@ -8,6 +8,7 @@ use Rasuvaeff\Context\Context;
 use Rasuvaeff\Context\ContextCancelledException;
 use Rasuvaeff\Context\ContextExpiredException;
 use Rasuvaeff\Context\Process\ContextProcess;
+use Rasuvaeff\Context\Sleeper;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\Process;
 use Testo\Assert;
@@ -31,6 +32,57 @@ final class ContextProcessTest
         [$context] = Context::background()->withTimeout(5.0);
 
         Assert::same(ContextProcess::run(new Process(['sh', '-c', 'exit 3']), $context), 3);
+    }
+
+    public function aShortCommandDoesNotWaitAFullPollInterval(): void
+    {
+        $started = hrtime(as_number: true);
+
+        Assert::same(ContextProcess::run(new Process(['true']), Context::background(), pollInterval: 2.0), 0);
+
+        Assert::true(hrtime(as_number: true) - $started < 1_000_000_000);
+    }
+
+    public function theWaitStartsAtOneMillisecondAndDoublesUpToThePollInterval(): void
+    {
+        $sleeper = new class implements Sleeper {
+            /** @var list<int> */
+            public array $waits = [];
+
+            #[\Override]
+            public function sleepNs(int $nanoseconds): void
+            {
+                $this->waits[] = $nanoseconds;
+                // Oversleep a little: an early return would add a remainder wait.
+                usleep(intdiv($nanoseconds, 1_000) + 500);
+            }
+        };
+        $context = Context::background(sleeper: $sleeper);
+
+        ContextProcess::run(new Process(['sleep', '0.3']), $context, pollInterval: 0.01);
+
+        Assert::same(\array_slice($sleeper->waits, 0, 5), [1_000_000, 2_000_000, 4_000_000, 8_000_000, 10_000_000]);
+        Assert::same(max($sleeper->waits), 10_000_000);
+    }
+
+    public function aPollIntervalBelowOneMillisecondIsTheWaitFromTheStart(): void
+    {
+        $sleeper = new class implements Sleeper {
+            /** @var list<int> */
+            public array $waits = [];
+
+            #[\Override]
+            public function sleepNs(int $nanoseconds): void
+            {
+                $this->waits[] = $nanoseconds;
+                // Oversleep a little: an early return would add a remainder wait.
+                usleep(intdiv($nanoseconds, 1_000) + 500);
+            }
+        };
+
+        ContextProcess::run(new Process(['sleep', '0.05']), Context::background(sleeper: $sleeper), pollInterval: 0.0005);
+
+        Assert::same(array_unique($sleeper->waits), [500_000]);
     }
 
     public function withoutADeadlineTheProcessRunsToCompletion(): void

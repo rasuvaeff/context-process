@@ -5,8 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.1.1 — 2026-11-20
 
+- Changed: the wait between polls starts at 1 ms and doubles up to
+  `pollInterval`, which stays the upper bound — a short command no longer
+  costs a full interval (#3).
 - Mutation testing now counts code the tests execute but do not name in `#[Covers]` (`infection --with-uncovered`); the `PublicVisibility` mutator is off and default values in parameter lists are ignored. No `src/` changes.
 
 ## 0.1.0 — 2026-10-15

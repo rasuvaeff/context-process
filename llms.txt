@@ -21,7 +21,8 @@ Requires `rasuvaeff/context` ^0.3, `symfony/process` ^7 || ^8.
 - A terminated context never starts the process; an already started process →
   LogicException; a throwing callback still stops the process.
 - Termination is noticed within one `pollInterval` (default 0.05 s); a
-  `requestCancel()` from a signal handler wakes the wait at once.
+  `requestCancel()` from a signal handler wakes the wait at once. Waits grow
+  1 ms, 2 ms, 4 ms… up to `pollInterval` (an upper bound, not a fixed step).
 
 ## API
 
