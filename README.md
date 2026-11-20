@@ -39,7 +39,9 @@ composer require rasuvaeff/context-process
   SIGTERM gets `$gracePeriod` seconds to clean up even after the deadline.
 - **Termination is noticed within one poll interval** (`$pollInterval`,
   50 ms by default); a cancellation requested from a signal handler wakes the
-  wait immediately.
+  wait immediately. The wait starts at 1 ms and doubles up to `$pollInterval`,
+  so a command that finishes in a few milliseconds returns in a few
+  milliseconds.
 - **Windows**: there are no signals — symfony/process terminates the process
   (`taskkill`) instead of SIGTERM/SIGKILL.
 

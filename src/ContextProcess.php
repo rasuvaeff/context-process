@@ -13,7 +13,8 @@ use Symfony\Component\Process\Process;
  * The process is polled while it runs: its output reaches `$callback`, its
  * own timeouts are checked, and between polls the context sleeps — so the
  * deadline or a cancellation (also one requested from a signal handler, which
- * wakes the sleep) is noticed within one poll interval. The process is then
+ * wakes the sleep) is noticed within one poll interval. The wait between
+ * polls starts at 1 ms and doubles up to `$pollInterval`. The process is then
  * stopped: SIGTERM, and SIGKILL if it is still running after `$gracePeriod`
  * — on Windows symfony/process terminates it instead. The context's
  * exception is rethrown.
@@ -22,12 +23,16 @@ use Symfony\Component\Process\Process;
  */
 final readonly class ContextProcess
 {
+    private const float FIRST_WAIT = 0.001;
+
     private function __construct() {}
 
     /**
      * @param (callable(string, string): void)|null $callback receives `Process::OUT`/`Process::ERR` and the chunk, as with `Process::run()`
      * @param float $gracePeriod seconds between SIGTERM and SIGKILL; not bounded by the budget, so the process can clean up
-     * @param float $pollInterval seconds between polls (output, timeouts, context)
+     * @param float $pollInterval the longest wait between polls (output, timeouts, context), in
+     *        seconds: the first wait is 1 ms and each next one doubles up to this bound, so a
+     *        short command does not cost a full interval
      *
      * @return int the exit code
      *
@@ -62,9 +67,11 @@ final readonly class ContextProcess
             // isRunning() reads the pipes and feeds the callback; checkTimeout()
             // enforces the process's own timeouts; sleep() ends with the
             // context's exception when the deadline or a cancellation comes.
+            $wait = min(self::FIRST_WAIT, $pollInterval);
             while ($process->isRunning()) {
                 $process->checkTimeout();
-                $context->sleep($pollInterval);
+                $context->sleep($wait);
+                $wait = min($wait * 2.0, $pollInterval);
             }
         } finally {
             // The context's exception, a throwing callback or the process's
