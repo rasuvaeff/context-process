@@ -26,7 +26,7 @@
     "require": {
         "php": "8.3 - 8.6",
         "rasuvaeff/context": "^0.3 || ^0.5",
-        "symfony/process": "^7.0 || ^8.0"
+        "symfony/process": "^7.1.7 || ^8.0.5"
     },
     "require-dev": {
         "ergebnis/composer-normalize": "^2.51",
