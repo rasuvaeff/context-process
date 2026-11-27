@@ -23,7 +23,7 @@
 
 - PHP 8.3+
 - `rasuvaeff/context` ^0.3
-- `symfony/process` ^7.0 или ^8.0
+- `symfony/process` ^7.1.7 или ^8.0.5
 
 ## Установка
 

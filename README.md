@@ -21,7 +21,7 @@ running on after the caller gave up.
 
 - PHP 8.3+
 - `rasuvaeff/context` ^0.3
-- `symfony/process` ^7.0 or ^8.0
+- `symfony/process` ^7.1.7 or ^8.0.5
 
 ## Installation
 
