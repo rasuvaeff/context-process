@@ -19,7 +19,8 @@ Requires `rasuvaeff/context` ^0.3, `symfony/process` ^7.1.7 || ^8.0.5.
   timeout with no grace); the process's own setTimeout()/setIdleTimeout() still
   work and their ProcessTimedOutException is rethrown unchanged.
 - A terminated context never starts the process; an already started process →
-  LogicException; a throwing callback still stops the process.
+  LogicException; a throwing callback still stops the process — also when it
+  throws inside `start()` — and is not called again while stopping.
 - Termination is noticed within one `pollInterval` (default 0.05 s); a
   `requestCancel()` from a signal handler wakes the wait at once. Waits grow
   1 ms, 2 ms, 4 ms… up to `pollInterval` (an upper bound, not a fixed step).

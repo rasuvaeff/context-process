@@ -209,6 +209,63 @@ final class ContextProcessTest
         throw new \LogicException('the callback exception was expected');
     }
 
+    public function aCallbackThrowingDuringStartStillStopsTheProcess(): void
+    {
+        // symfony/process may read the pipes and feed the callback inside
+        // start(), after the child is already open: reproduce that phase
+        // deterministically by feeding the first chunk from start() itself.
+        $process = new class (['sh', '-c', 'echo ready; sleep 10']) extends Process {
+            #[\Override]
+            public function start(?callable $callback = null, array $env = []): void
+            {
+                parent::start($callback, $env);
+                usleep(100_000);
+                if ($callback !== null) {
+                    $callback(self::OUT, "ready\n");
+                }
+            }
+        };
+        $calls = 0;
+
+        try {
+            ContextProcess::run($process, Context::background(), static function () use (&$calls): void {
+                if (++$calls === 1) {
+                    throw new \DomainException('callback failed');
+                }
+            });
+        } catch (\DomainException) {
+            Assert::false($process->isRunning());
+            Assert::same($calls, 1);
+
+            return;
+        }
+
+        throw new \LogicException('the callback exception was expected');
+    }
+
+    public function aCallbackThatFailedWhileReadingIsNotCalledAgainWhenStopping(): void
+    {
+        // The trap prints on SIGTERM: stopping reads that output, and it must
+        // not reach the callback that already failed.
+        $process = new Process(['sh', '-c', 'trap "echo bye; exit 0" TERM; echo ready; while true; do sleep 0.01; done']);
+        $calls = 0;
+
+        try {
+            ContextProcess::run($process, Context::background(), static function () use (&$calls): never {
+                ++$calls;
+
+                throw new \DomainException('callback failed');
+            });
+        } catch (\DomainException) {
+            Assert::false($process->isRunning());
+            Assert::same($calls, 1);
+
+            return;
+        }
+
+        throw new \LogicException('the callback exception was expected');
+    }
+
     public function aTerminatedContextNeverStartsTheProcess(): void
     {
         $process = new Process(['true']);

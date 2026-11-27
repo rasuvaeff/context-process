@@ -32,6 +32,10 @@ Namespace `Rasuvaeff\Context\Process\`. One entry point:
 5. **Choose `gracePeriod` for the tool**: it is not bounded by the budget —
    long enough for the tool to flush/clean up on SIGTERM, short enough for the
    worker's own shutdown grace (Kubernetes `terminationGracePeriodSeconds`).
+6. **Keep `start()` under the cleanup.** symfony/process may read output and
+   call the callback inside `start()`, after the child is open; a throwing
+   callback must still stop the process, and once it threw it is not fed again
+   (stopping reads the pipes too).
 
 ## Canonical usage
 

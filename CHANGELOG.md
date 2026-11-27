@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+- **Fixed:** a callback throwing inside `Process::start()` — symfony/process may
+  read output there, after the child is open — left the process running; the
+  start is now under the cleanup. A callback that threw is no longer called
+  again while the process is stopped, so its second exception cannot escape
+  the cleanup before the stop (#10).
+
 ## 0.1.3 — 2026-11-27
 
 - Requires `symfony/process` `^7.1.7 || ^8.0.5`: versions with security advisories are no longer allowed.

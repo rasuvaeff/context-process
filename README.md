@@ -71,7 +71,7 @@ try {
 | The context is cancelled (also via `requestCancel()` from a signal handler, e.g. [`rasuvaeff/context-cli`](https://github.com/rasuvaeff/context-cli)) | The process is stopped; `ContextCancelledException` with the reason as `previous` |
 | The context is already terminated | The process is never started |
 | The process's own `setTimeout()` / `setIdleTimeout()` fires | symfony/process stops it; its `ProcessTimedOutException` is rethrown unchanged |
-| The callback throws | The process is stopped; the callback's exception propagates |
+| The callback throws (while reading output, also inside `start()`) | The process is stopped; the callback's exception propagates and the callback is not called again |
 | The process was already started | `LogicException` |
 
 The budget is not turned into the process's own timeout: symfony/process
