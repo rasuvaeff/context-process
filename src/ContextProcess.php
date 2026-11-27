@@ -61,9 +61,12 @@ final readonly class ContextProcess
         }
 
         $context->assertActive();
-        $process->start($callback);
 
         try {
+            // start() may already read the pipes and feed the callback while
+            // the child is open, so it belongs under the cleanup.
+            $process->start(self::guard($callback));
+
             // isRunning() reads the pipes and feeds the callback; checkTimeout()
             // enforces the process's own timeouts; sleep() ends with the
             // context's exception when the deadline or a cancellation comes.
@@ -83,5 +86,38 @@ final readonly class ContextProcess
         }
 
         return $process->getExitCode() ?? throw new \LogicException('A finished process has no exit code');
+    }
+
+    /**
+     * Stopping reads the pipes too: a callback that already threw must not be
+     * fed again, or its next exception escapes the cleanup before the process
+     * is stopped.
+     *
+     * @param (callable(string, string): void)|null $callback
+     *
+     * @return (\Closure(string, string): void)|null
+     */
+    private static function guard(?callable $callback): ?\Closure
+    {
+        if ($callback === null) {
+            return null;
+        }
+
+        $failed = false;
+
+        return static function (string $type, string $chunk) use ($callback, &$failed): void {
+            /** @var bool $failed set by an earlier call through the reference */
+            if ($failed) {
+                return;
+            }
+
+            try {
+                $callback($type, $chunk);
+            } catch (\Throwable $exception) {
+                $failed = true;
+
+                throw $exception;
+            }
+        };
     }
 }

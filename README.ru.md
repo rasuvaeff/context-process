@@ -73,7 +73,7 @@ try {
 | Контекст отменён (в том числе через `requestCancel()` из обработчика сигнала, например [`rasuvaeff/context-cli`](https://github.com/rasuvaeff/context-cli)) | Процесс останавливается; `ContextCancelledException` с причиной в `previous` |
 | Контекст уже завершён | Процесс не запускается |
 | Сработал собственный `setTimeout()` / `setIdleTimeout()` процесса | symfony/process останавливает его; `ProcessTimedOutException` пробрасывается без изменений |
-| Callback бросил исключение | Процесс останавливается; исключение callback пробрасывается |
+| Callback бросил исключение (при чтении вывода, в том числе внутри `start()`) | Процесс останавливается; исключение callback пробрасывается, повторно callback не вызывается |
 | Процесс уже запущен | `LogicException` |
 
 Бюджет не превращается в собственный таймаут процесса: symfony/process по
