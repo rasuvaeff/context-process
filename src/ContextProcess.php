@@ -106,6 +106,7 @@ final readonly class ContextProcess
         $failed = false;
 
         return static function (string $type, string $chunk) use ($callback, &$failed): void {
+            /** @var bool $failed set by an earlier call through the reference */
             if ($failed) {
                 return;
             }
